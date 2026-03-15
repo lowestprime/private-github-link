@@ -10,6 +10,7 @@ import {
 	GitBranch,
 	GitFork,
 	Globe,
+	KeyRound,
 	Lock,
 	Newspaper,
 	Scale,
@@ -19,6 +20,9 @@ import * as React from "react";
 import {
 	Popover,
 	PopoverContent,
+	PopoverDescription,
+	PopoverHeader,
+	PopoverTitle,
 	PopoverTrigger,
 } from "@/components/ui/popover";
 import { CLIPBOARD_FEEDBACK_DURATION } from "@/lib/constants";
@@ -79,6 +83,48 @@ function RateLimitBadge({ token }: { token?: string }) {
 		>
 			{used.toLocaleString()}/{limit.toLocaleString()}
 		</div>
+	);
+}
+
+function TokenActiveBadge({ token }: { token?: string }) {
+	if (!token) {
+		return null;
+	}
+
+	return (
+		<Popover>
+			<PopoverTrigger
+				render={(props) => (
+					<button
+						{...props}
+						type="button"
+						className="hidden sm:inline-flex items-center gap-1 rounded-full border border-emerald-500/25 bg-emerald-500/10 px-2.5 py-1 text-[11px] font-medium text-emerald-700 transition-colors hover:bg-emerald-500/15 dark:border-emerald-400/25 dark:bg-emerald-400/10 dark:text-emerald-300"
+					>
+						<KeyRound className="size-3" />
+						<span>Token active</span>
+					</button>
+				)}
+			/>
+			<PopoverContent align="end" className="w-80 p-3">
+				<PopoverHeader className="gap-2">
+					<PopoverTitle>Personal access token in use</PopoverTitle>
+					<PopoverDescription className="text-xs leading-relaxed">
+						This repository is using your personal access token. If you no
+						longer need to share it, deactivate or delete the token in GitHub
+						settings.
+					</PopoverDescription>
+				</PopoverHeader>
+				<a
+					href="https://github.com/settings/personal-access-tokens"
+					target="_blank"
+					rel="noopener noreferrer"
+					className="inline-flex items-center gap-2 text-xs font-medium text-blue-600 hover:underline dark:text-blue-400"
+				>
+					Open token settings
+					<ExternalLink className="size-3" />
+				</a>
+			</PopoverContent>
+		</Popover>
 	);
 }
 
@@ -171,6 +217,7 @@ export function RepoHeader({
 
 				{/* Actions */}
 				<div className="flex items-center gap-2 shrink-0">
+					<TokenActiveBadge token={accessToken} />
 					{/* Rate limit badge */}
 					<RateLimitBadge token={accessToken} />
 
