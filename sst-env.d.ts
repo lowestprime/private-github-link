@@ -6,6 +6,18 @@
 
 declare module "sst" {
   export interface Resource {
+    "PosthogApiKey": {
+      "type": "sst.sst.Secret"
+      "value": string
+    }
+    "PrivateGithubLink": {
+      "type": "sst.aws.TanstackStart"
+      "url": string
+    }
+    "SentryDsn": {
+      "type": "sst.sst.Secret"
+      "value": string
+    }
   }
 }
 /// <reference path="sst-env.d.ts" />

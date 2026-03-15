@@ -43,7 +43,6 @@ export function TokenLeaveAlert({ enabled }: TokenLeaveAlertProps) {
 	const [hasAcknowledgedReminder, setHasAcknowledgedReminder] =
 		React.useState(false);
 	const pendingNavigationRef = React.useRef<PendingNavigation | null>(null);
-	const bypassBeforeUnloadRef = React.useRef(false);
 
 	React.useEffect(() => {
 		if (typeof window === "undefined") return;
@@ -102,19 +101,6 @@ export function TokenLeaveAlert({ enabled }: TokenLeaveAlertProps) {
 			document.removeEventListener("click", handleDocumentClick, true);
 	}, [enabled, hasAcknowledgedReminder]);
 
-	React.useEffect(() => {
-		if (!enabled || typeof window === "undefined") return;
-
-		const handleBeforeUnload = (event: BeforeUnloadEvent) => {
-			if (bypassBeforeUnloadRef.current) return;
-			event.preventDefault();
-			event.returnValue = "";
-		};
-
-		window.addEventListener("beforeunload", handleBeforeUnload);
-		return () => window.removeEventListener("beforeunload", handleBeforeUnload);
-	}, [enabled]);
-
 	const acknowledgeReminder = React.useCallback(() => {
 		setHasAcknowledgedReminder(true);
 		if (typeof window !== "undefined") {
@@ -129,7 +115,6 @@ export function TokenLeaveAlert({ enabled }: TokenLeaveAlertProps) {
 
 		if (!pendingNavigation) return;
 
-		bypassBeforeUnloadRef.current = true;
 		openExternalTarget(pendingNavigation);
 	}, [acknowledgeReminder]);
 
