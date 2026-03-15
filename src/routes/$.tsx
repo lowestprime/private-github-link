@@ -16,6 +16,7 @@ import {
 import { RepoAccessDialog } from "@/components/repo-access-dialog";
 import { RepoErrorBoundary } from "@/components/repo-error-boundary";
 import { RepoPending } from "@/components/repo-pending";
+import { TokenLeaveAlert } from "@/components/token-leave-alert";
 import { Button } from "@/components/ui/button";
 import {
 	CACHE_FIVE_MINUTES,
@@ -35,6 +36,7 @@ import {
 import { getAuthenticatedUser, RateLimitError } from "@/lib/github/api";
 import { withTimeout } from "@/lib/github/client";
 import { useRateLimit } from "@/lib/github/rate-limit";
+import { fetchRepoVisibility } from "@/lib/github/repo-visibility";
 import { findNode } from "@/lib/tree-utils";
 import type { TreeNode } from "@/lib/types/github";
 
@@ -52,7 +54,7 @@ function RouteComponent() {
 	const queryClient = useQueryClient();
 
 	// Parse URL
-	const splatPath = params["_splat"] || "";
+	const splatPath = params._splat || "";
 	const parsed = parseRepoPath(splatPath);
 
 	const owner = parsed?.owner || "";
@@ -551,14 +553,33 @@ function RouteComponent() {
 		isRateLimitErr(directoryError as Error | null) ||
 		hasTreeMutationRateLimitError;
 
+	const shouldCheckRepoVisibilityFallback =
+		!githubToken && isRateLimitErr(repoInfoError as Error | null);
+
+	const { data: repoVisibility, isLoading: isRepoVisibilityLoading } = useQuery(
+		{
+			queryKey: ["repoVisibility", owner, repo],
+			queryFn: () => fetchRepoVisibility(owner, repo),
+			enabled: Boolean(owner && repo && shouldCheckRepoVisibilityFallback),
+			staleTime: CACHE_FIVE_MINUTES,
+			retry: false,
+		},
+	);
+
+	const shouldPreferPrivateOrMissingDialog =
+		shouldCheckRepoVisibilityFallback &&
+		repoVisibility?.visibility === "private-or-missing";
+	const tokenLeaveReminder = githubToken ? <TokenLeaveAlert enabled /> : null;
+
 	// Show loading state while fetching initial data for unauthenticated users
-	if (isInitialLoading) {
+	if (isInitialLoading || isRepoVisibilityLoading) {
 		return <RepoPending />;
 	}
 
-	if (clientRateLimitError) {
+	if (clientRateLimitError && !shouldPreferPrivateOrMissingDialog) {
 		return (
 			<div className="flex flex-col bg-muted min-h-screen">
+				{tokenLeaveReminder}
 				<MinimalRepoHeader owner={owner} repo={repo} />
 				<div className="flex gap-2 lg:gap-4 p-2 lg:p-4">
 					<div className="hidden lg:block sticky top-4 h-[calc(100vh-2rem)] shrink-0">
@@ -597,6 +618,7 @@ function RouteComponent() {
 	) {
 		return (
 			<div className="flex flex-col bg-muted min-h-screen">
+				{tokenLeaveReminder}
 				{repoInfo && (
 					<RepoHeader
 						repo={repoInfo}
@@ -650,9 +672,13 @@ function RouteComponent() {
 		(isNotFoundError(repoInfoError as Error | null) ||
 			isNotFoundError(branchesError as Error | null));
 
-	if (clientNotFoundError) {
+	const shouldShowNotFoundDialog =
+		clientNotFoundError || shouldPreferPrivateOrMissingDialog;
+
+	if (shouldShowNotFoundDialog) {
 		return (
 			<div className="flex flex-col bg-muted min-h-screen">
+				{tokenLeaveReminder}
 				<MinimalRepoHeader owner={owner} repo={repo} />
 				<div className="flex gap-2 lg:gap-4 p-2 lg:p-4">
 					<div className="hidden lg:block sticky top-4 h-[calc(100vh-2rem)] shrink-0">
@@ -686,6 +712,7 @@ function RouteComponent() {
 
 	return (
 		<div className="flex flex-col bg-muted">
+			{tokenLeaveReminder}
 			{/* Repo Header */}
 			{repoInfo && (
 				<RepoHeader
@@ -798,7 +825,7 @@ function PendingComponent() {
 function ErrorComponent({ error, reset }: ErrorComponentProps) {
 	const params = Route.useParams();
 	const search = Route.useSearch() as { access_token?: string };
-	const splatPath = params["_splat"] || "";
+	const splatPath = params._splat || "";
 	const parsed = parseRepoPath(splatPath);
 	const owner = parsed?.owner || "";
 	const repo = parsed?.repo || "";
@@ -826,7 +853,7 @@ export const Route = createFileRoute("/$")({
 	// Note: Domain redirect from landing domain to app domain is handled by server middleware
 	// See: server/middleware/domain-redirect.ts
 	loader: async ({ params, location }) => {
-		const splatPath = params["_splat"] || "";
+		const splatPath = params._splat || "";
 		const segments = splatPath.split("/").filter(Boolean);
 
 		// Ignore system/internal paths:
@@ -849,24 +876,19 @@ export const Route = createFileRoute("/$")({
 		// Only fetch server-side if authenticated (uses token's 5k/hr quota)
 		// Unauthenticated requests should be client-side (uses user's IP 60/hr quota)
 		if (githubToken) {
+			const [repoInfo, branches] = await Promise.all([
+				withTimeout(getRepoInfo(owner, repo, githubToken), LOADER_TIMEOUT),
+				withTimeout(getBranches(owner, repo, githubToken), LOADER_TIMEOUT),
+			]);
+
+			// Verify the token is valid (silently - dialog will handle auth errors)
 			try {
-				const [repoInfo, branches] = await Promise.all([
-					withTimeout(getRepoInfo(owner, repo, githubToken), LOADER_TIMEOUT),
-					withTimeout(getBranches(owner, repo, githubToken), LOADER_TIMEOUT),
-				]);
-
-				// Verify the token is valid (silently - dialog will handle auth errors)
-				try {
-					await withTimeout(getAuthenticatedUser(githubToken), LOADER_TIMEOUT);
-				} catch {
-					// Auth errors are expected for invalid/expired tokens - dialog handles this
-				}
-
-				return { repoInfo, branches, isAuthenticated: true };
-			} catch (error) {
-				// Rate limit or other errors will be shown in error component
-				throw error;
+				await withTimeout(getAuthenticatedUser(githubToken), LOADER_TIMEOUT);
+			} catch {
+				// Auth errors are expected for invalid/expired tokens - dialog handles this
 			}
+
+			return { repoInfo, branches, isAuthenticated: true };
 		}
 
 		// Unauthenticated - return null, will fetch on client-side

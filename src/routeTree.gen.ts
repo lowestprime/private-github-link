@@ -13,6 +13,7 @@ import { Route as SplatRouteImport } from './routes/$'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ApiTestErrorRouteImport } from './routes/api/test-error'
 import { Route as ApiSentryTunnelRouteImport } from './routes/api/sentry-tunnel'
+import { Route as ApiRepoVisibilityRouteImport } from './routes/api/repo-visibility'
 import { Route as ApiTESplatRouteImport } from './routes/api/t/e.$'
 
 const SplatRoute = SplatRouteImport.update({
@@ -35,6 +36,11 @@ const ApiSentryTunnelRoute = ApiSentryTunnelRouteImport.update({
   path: '/api/sentry-tunnel',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiRepoVisibilityRoute = ApiRepoVisibilityRouteImport.update({
+  id: '/api/repo-visibility',
+  path: '/api/repo-visibility',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiTESplatRoute = ApiTESplatRouteImport.update({
   id: '/api/t/e/$',
   path: '/api/t/e/$',
@@ -44,6 +50,7 @@ const ApiTESplatRoute = ApiTESplatRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/$': typeof SplatRoute
+  '/api/repo-visibility': typeof ApiRepoVisibilityRoute
   '/api/sentry-tunnel': typeof ApiSentryTunnelRoute
   '/api/test-error': typeof ApiTestErrorRoute
   '/api/t/e/$': typeof ApiTESplatRoute
@@ -51,6 +58,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/$': typeof SplatRoute
+  '/api/repo-visibility': typeof ApiRepoVisibilityRoute
   '/api/sentry-tunnel': typeof ApiSentryTunnelRoute
   '/api/test-error': typeof ApiTestErrorRoute
   '/api/t/e/$': typeof ApiTESplatRoute
@@ -59,6 +67,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/$': typeof SplatRoute
+  '/api/repo-visibility': typeof ApiRepoVisibilityRoute
   '/api/sentry-tunnel': typeof ApiSentryTunnelRoute
   '/api/test-error': typeof ApiTestErrorRoute
   '/api/t/e/$': typeof ApiTESplatRoute
@@ -68,15 +77,23 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/$'
+    | '/api/repo-visibility'
     | '/api/sentry-tunnel'
     | '/api/test-error'
     | '/api/t/e/$'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/$' | '/api/sentry-tunnel' | '/api/test-error' | '/api/t/e/$'
+  to:
+    | '/'
+    | '/$'
+    | '/api/repo-visibility'
+    | '/api/sentry-tunnel'
+    | '/api/test-error'
+    | '/api/t/e/$'
   id:
     | '__root__'
     | '/'
     | '/$'
+    | '/api/repo-visibility'
     | '/api/sentry-tunnel'
     | '/api/test-error'
     | '/api/t/e/$'
@@ -85,6 +102,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   SplatRoute: typeof SplatRoute
+  ApiRepoVisibilityRoute: typeof ApiRepoVisibilityRoute
   ApiSentryTunnelRoute: typeof ApiSentryTunnelRoute
   ApiTestErrorRoute: typeof ApiTestErrorRoute
   ApiTESplatRoute: typeof ApiTESplatRoute
@@ -120,6 +138,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiSentryTunnelRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/repo-visibility': {
+      id: '/api/repo-visibility'
+      path: '/api/repo-visibility'
+      fullPath: '/api/repo-visibility'
+      preLoaderRoute: typeof ApiRepoVisibilityRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/t/e/$': {
       id: '/api/t/e/$'
       path: '/api/t/e/$'
@@ -133,6 +158,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   SplatRoute: SplatRoute,
+  ApiRepoVisibilityRoute: ApiRepoVisibilityRoute,
   ApiSentryTunnelRoute: ApiSentryTunnelRoute,
   ApiTestErrorRoute: ApiTestErrorRoute,
   ApiTESplatRoute: ApiTESplatRoute,

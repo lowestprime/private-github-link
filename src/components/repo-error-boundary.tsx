@@ -105,7 +105,7 @@ export function RepoErrorBoundary({
 						isLoading={true}
 						repoName={repo}
 						currentPath=""
-						error="Repository not found"
+						error="Repository not found or is private"
 						className="flex-1 min-w-0"
 					/>
 				</div>

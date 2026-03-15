@@ -221,7 +221,7 @@ export function RepoAccessDialog({
 								variant="outline"
 								onClick={() => {
 									navigator.clipboard.writeText(
-										`https://${APP_DOMAIN}` + getRepoUrl(),
+										`https://${APP_DOMAIN}${getRepoUrl()}`,
 									);
 								}}
 								className="w-full"
@@ -288,7 +288,7 @@ export function RepoAccessDialog({
 									<DialogTitle className="text-xl">
 										{variant === "rate-limit"
 											? "Rate Limit Exceeded"
-											: "Repository Not Found"}
+											: "Repository not found or is private"}
 									</DialogTitle>
 									<DialogDescription className="text-sm">
 										{variant === "rate-limit" ? (
@@ -305,8 +305,8 @@ export function RepoAccessDialog({
 												<code className="rounded bg-secondary px-1.5 py-0.5 font-mono text-xs text-foreground">
 													{fullRepoName}
 												</code>{" "}
-												doesn{"'"}t exist or you don{"'"}t have permission to
-												access it.
+												is not publicly accessible. It may not exist, or it may
+												be a private repository.
 											</>
 										)}
 									</DialogDescription>
