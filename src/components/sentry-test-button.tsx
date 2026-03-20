@@ -20,7 +20,7 @@ export function SentryTestButton() {
 			const res = await fetch("/api/test-error", { method: "POST" });
 			const data = await res.json();
 			setStatus(data.message);
-		} catch (error) {
+		} catch (_error) {
 			setStatus("Failed to trigger server error");
 		}
 	};

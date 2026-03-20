@@ -10,6 +10,11 @@ export type FileType =
 	| "audio"
 	| "binary";
 
+export interface ResolvedMarkdownLink {
+	hash: string;
+	path: string;
+}
+
 // Extension arrays for file type detection
 export const MARKDOWN_EXTENSIONS = ["md", "markdown", "mdx"];
 
@@ -49,6 +54,48 @@ export const BINARY_EXTENSIONS = [
 	"otf",
 	"eot",
 ];
+
+function isAbsoluteUrl(src: string): boolean {
+	return /^[a-z][a-z\d+.-]*:/i.test(src) || src.startsWith("//");
+}
+
+function safeDecodeURIComponent(value: string): string {
+	try {
+		return decodeURIComponent(value);
+	} catch {
+		return value;
+	}
+}
+
+function getFileDirectory(filePath: string): string[] {
+	if (!filePath.includes("/")) {
+		return [];
+	}
+
+	return filePath.split("/").slice(0, -1);
+}
+
+function resolveRepoRelativePath(src: string, filePath: string): string {
+	const segments = src.startsWith("/")
+		? src.slice(1).split("/")
+		: [...getFileDirectory(filePath), ...src.split("/")];
+	const resolvedSegments: string[] = [];
+
+	for (const segment of segments) {
+		if (!segment || segment === ".") {
+			continue;
+		}
+
+		if (segment === "..") {
+			resolvedSegments.pop();
+			continue;
+		}
+
+		resolvedSegments.push(segment);
+	}
+
+	return resolvedSegments.join("/");
+}
 
 /**
  * Get file extension from filename
@@ -109,18 +156,39 @@ export function getMimeType(filename: string): string {
 	return mimeTypes[ext] || "application/octet-stream";
 }
 
+function decodeBase64ToBytes(content: string): Uint8Array {
+	const normalized = content.replace(/\s+/g, "");
+	const binaryString = atob(normalized);
+	const bytes = new Uint8Array(binaryString.length);
+
+	for (let i = 0; i < binaryString.length; i++) {
+		bytes[i] = binaryString.charCodeAt(i);
+	}
+
+	return bytes;
+}
+
+function bytesToArrayBuffer(bytes: Uint8Array): ArrayBuffer {
+	return Uint8Array.from(bytes).buffer;
+}
+
 /**
  * Decode base64 content from GitHub API
  */
 export function decodeContent(content: string, encoding: string): string {
-	if (encoding === "base64") {
+	if (encoding !== "base64") {
+		return content;
+	}
+
+	try {
+		return new TextDecoder("utf-8").decode(decodeBase64ToBytes(content));
+	} catch {
 		try {
-			return atob(content);
+			return atob(content.replace(/\s+/g, ""));
 		} catch {
 			return content;
 		}
 	}
-	return content;
 }
 
 /**
@@ -137,13 +205,7 @@ export function downloadFile(file: FileContent): void {
 	let blob: Blob;
 
 	if (file.encoding === "base64") {
-		// Decode base64 to binary
-		const binaryString = atob(file.content);
-		const bytes = new Uint8Array(binaryString.length);
-		for (let i = 0; i < binaryString.length; i++) {
-			bytes[i] = binaryString.charCodeAt(i);
-		}
-		blob = new Blob([bytes]);
+		blob = new Blob([bytesToArrayBuffer(decodeBase64ToBytes(file.content))]);
 	} else {
 		// Plain text content
 		blob = new Blob([file.content], { type: "text/plain" });
@@ -169,42 +231,30 @@ export function resolveRelativeUrl(
 	repo: string,
 	branch: string,
 ): string {
-	// If it's already an absolute URL, return as-is
-	if (
-		src.startsWith("http://") ||
-		src.startsWith("https://") ||
-		src.startsWith("data:")
-	) {
+	if (isAbsoluteUrl(src)) {
 		return src;
 	}
 
-	// Get the directory of the current file
-	const fileDir = filePath.includes("/")
-		? filePath.substring(0, filePath.lastIndexOf("/"))
-		: "";
+	const resolvedPath = resolveRepoRelativePath(src, filePath);
+	return `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${resolvedPath}`;
+}
 
-	// Handle relative paths
-	let resolvedPath: string;
-	if (src.startsWith("./")) {
-		// Relative to current directory: ./media/image.png
-		resolvedPath = fileDir ? `${fileDir}/${src.slice(2)}` : src.slice(2);
-	} else if (src.startsWith("../")) {
-		// Parent directory reference
-		const parts = fileDir.split("/");
-		let srcParts = src.split("/");
-		while (srcParts[0] === "..") {
-			parts.pop();
-			srcParts = srcParts.slice(1);
-		}
-		resolvedPath = [...parts, ...srcParts].filter(Boolean).join("/");
-	} else if (src.startsWith("/")) {
-		// Absolute path from repo root
-		resolvedPath = src.slice(1);
-	} else {
-		// Relative path without prefix: media/image.png
-		resolvedPath = fileDir ? `${fileDir}/${src}` : src;
+export function resolveMarkdownLink(
+	href: string,
+	filePath: string,
+): ResolvedMarkdownLink | null {
+	if (!href || isAbsoluteUrl(href) || href.startsWith("data:")) {
+		return null;
 	}
 
-	// Return raw GitHub URL
-	return `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${resolvedPath}`;
+	const [pathAndQuery = "", hash = ""] = href.split("#", 2);
+	const [pathWithoutQuery = ""] = pathAndQuery.split("?", 2);
+	const resolvedPath = pathWithoutQuery
+		? resolveRepoRelativePath(pathWithoutQuery, filePath)
+		: filePath;
+
+	return {
+		hash: safeDecodeURIComponent(hash),
+		path: resolvedPath,
+	};
 }

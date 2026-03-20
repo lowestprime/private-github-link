@@ -34,7 +34,7 @@ export async function withTimeout<T>(
 	promise: Promise<T>,
 	timeoutMs: number = REQUEST_TIMEOUT,
 ): Promise<T> {
-	let timeoutId: ReturnType<typeof setTimeout>;
+	let timeoutId: ReturnType<typeof setTimeout> | undefined;
 
 	const timeoutPromise = new Promise<never>((_, reject) => {
 		timeoutId = setTimeout(() => {
@@ -44,10 +44,14 @@ export async function withTimeout<T>(
 
 	try {
 		const result = await Promise.race([promise, timeoutPromise]);
-		clearTimeout(timeoutId!);
+		if (timeoutId !== undefined) {
+			clearTimeout(timeoutId);
+		}
 		return result;
 	} catch (error) {
-		clearTimeout(timeoutId!);
+		if (timeoutId !== undefined) {
+			clearTimeout(timeoutId);
+		}
 		throw error;
 	}
 }

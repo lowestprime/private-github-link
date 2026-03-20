@@ -12,7 +12,7 @@ import { ErrorFallback } from "@/components/error-fallback";
 import { SentryTestButton } from "@/components/sentry-test-button";
 import { ThemeProvider } from "@/components/theme-provider";
 import { RateLimitProvider } from "@/lib/github/rate-limit";
-import { getPostHogApiKey, posthogOptions } from "@/lib/posthog.client";
+import { getPostHogApiKey, posthogOptions } from "@/lib/posthog-config";
 
 import TanStackQueryDevtools from "../integrations/tanstack-query/devtools";
 import appCss from "../styles.css?url";
@@ -21,9 +21,18 @@ interface MyRouterContext {
 	queryClient: QueryClient;
 }
 
+function getSplatPath(params: unknown): string {
+	if (!params || typeof params !== "object") {
+		return "";
+	}
+
+	const splat = Reflect.get(params, "_splat");
+	return typeof splat === "string" ? splat : "";
+}
+
 export const Route = createRootRouteWithContext<MyRouterContext>()({
 	head: ({ params }) => {
-		const splatPath = (params as any)?.["_splat"] || "";
+		const splatPath = getSplatPath(params);
 		const segments = splatPath.split("/").filter(Boolean);
 		const [owner, repo] = segments;
 

@@ -5,6 +5,7 @@ import {
 	getFileExtension,
 	getFileType,
 	getMimeType,
+	resolveMarkdownLink,
 	resolveRelativeUrl,
 } from "./file-utils";
 
@@ -110,13 +111,25 @@ describe("decodeContent", () => {
 		expect(decodeContent(encoded, "base64")).toBe("Hello, World!");
 	});
 
+	it("should decode UTF-8 punctuation, emoji, and multilingual text", () => {
+		const text = "UTF-8 — “smart quotes”, it's fine, 你好, and 🚀.";
+		const encoded = Buffer.from(text, "utf8").toString("base64");
+		expect(decodeContent(encoded, "base64")).toBe(text);
+	});
+
+	it("should decode wrapped base64 content", () => {
+		const text = "Wrapped — “quotes” and it's still fine.";
+		const encoded = Buffer.from(text, "utf8").toString("base64");
+		const wrapped = encoded.replace(/(.{12})/g, "$1\n");
+		expect(decodeContent(wrapped, "base64")).toBe(text);
+	});
+
 	it("should return content as-is for non-base64 encoding", () => {
 		expect(decodeContent("plain text", "utf-8")).toBe("plain text");
 		expect(decodeContent("some content", "")).toBe("some content");
 	});
 
 	it("should handle invalid base64 gracefully", () => {
-		// Invalid base64 should return the original content
 		expect(decodeContent("not valid base64!!!", "base64")).toBe(
 			"not valid base64!!!",
 		);
@@ -242,5 +255,25 @@ describe("resolveRelativeUrl", () => {
 		).toBe(
 			"https://raw.githubusercontent.com/test-owner/test-repo/main/image.png",
 		);
+	});
+});
+
+describe("resolveMarkdownLink", () => {
+	it("should resolve same-file anchors", () => {
+		expect(resolveMarkdownLink("#overview", "docs/README.md")).toEqual({
+			hash: "overview",
+			path: "docs/README.md",
+		});
+	});
+
+	it("should resolve repo-relative markdown links with hashes", () => {
+		expect(resolveMarkdownLink("../GUIDE.md#intro", "docs/README.md")).toEqual({
+			hash: "intro",
+			path: "GUIDE.md",
+		});
+	});
+
+	it("should ignore external markdown links", () => {
+		expect(resolveMarkdownLink("https://example.com", "README.md")).toBeNull();
 	});
 });

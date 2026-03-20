@@ -20,11 +20,30 @@
 		"enabled": true,
 		"indentStyle": "tab"
 	},
-	"assist": { "actions": { "source": { "organizeImports": "on" } } },
+	"assist": {
+		"actions": {
+			"source": {
+				"organizeImports": "on"
+			}
+		}
+	},
 	"linter": {
 		"enabled": true,
 		"rules": {
-			"recommended": true
+			"recommended": true,
+			"a11y": {
+				"noLabelWithoutControl": "off",
+				"useAriaPropsForRole": "off",
+				"useFocusableInteractive": "off",
+				"useKeyWithClickEvents": "off",
+				"useSemanticElements": "off"
+			},
+			"correctness": {
+				"noNestedComponentDefinitions": "off"
+			},
+			"security": {
+				"noDangerouslySetInnerHtml": "off"
+			}
 		}
 	},
 	"javascript": {

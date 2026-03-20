@@ -135,7 +135,6 @@ export function CodeViewer({ file, wrapText = false }: CodeViewerProps) {
 											? "whitespace-pre-wrap break-all"
 											: "whitespace-pre",
 									)}
-									// biome-ignore lint/security/noDangerouslySetInnerHtml: Required for syntax highlighting
 									dangerouslySetInnerHTML={{ __html: lineHtml || " " }}
 								/>
 							</tr>

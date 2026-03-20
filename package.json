@@ -10,7 +10,7 @@
   },
   "type": "module",
   "scripts": {
-    "build": "vite build && cp instrument.server.mjs .output/server",
+    "build": "node --max-old-space-size=8192 ./node_modules/vite/bin/vite.js build && node -e \"require('node:fs').copyFileSync('instrument.server.mjs', '.output/server/instrument.server.mjs')\"",
     "check": "biome check",
     "dev": "dotenv -e .env.local -- sh -c \"NODE_OPTIONS='--import ./instrument.server.mjs' vite dev --port 3000\"",
     "format": "biome format",
@@ -38,15 +38,19 @@
     "@tanstack/react-store": "^0.8.0",
     "@tanstack/router-plugin": "^1.132.0",
     "@tanstack/store": "^0.8.0",
+    "@wooorm/starry-night": "^3.9.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
+    "d3-geo": "^3.1.1",
     "date-fns": "^4.1.0",
     "dotenv-cli": "^11.0.0",
     "embla-carousel-react": "^8.6.0",
     "highlight.js": "^11.11.1",
     "input-otp": "^1.4.2",
     "lucide-react": "^0.563.0",
+    "mermaid": "^11.13.0",
+    "mdast-util-to-string": "^4.0.0",
     "next-themes": "^0.4.6",
     "nitro": "npm:nitro-nightly@latest",
     "octokit": "^5.0.5",
@@ -60,15 +64,21 @@
     "rehype-raw": "^7.0.0",
     "rehype-sanitize": "^6.0.0",
     "remark-gfm": "^4.0.1",
+    "remark-parse": "^11.0.0",
     "shadcn": "^3.7.0",
     "sonner": "^2.0.7",
     "sst": "3.17.38",
     "tailwind-merge": "^3.4.0",
     "tailwindcss": "^4.0.6",
+    "three": "^0.183.2",
+    "topojson-client": "^3.1.0",
     "tw-animate-css": "^1.4.0",
+    "unified": "^11.0.5",
+    "unist-util-visit": "^5.0.0",
     "usehooks-ts": "^3.1.1",
     "vaul": "^1.1.2",
-    "vite-tsconfig-paths": "^6.0.2"
+    "vite-tsconfig-paths": "^6.0.2",
+    "vscode-oniguruma": "^2.0.1"
   },
   "devDependencies": {
     "@biomejs/biome": "2.2.4",
@@ -79,9 +89,13 @@
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.2.0",
     "@types/aws-lambda": "8.10.160",
+    "@types/d3-geo": "^3.1.0",
+    "@types/geojson": "^7946.0.16",
     "@types/node": "^22.10.2",
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
+    "@types/three": "^0.183.1",
+    "@types/topojson-client": "^3.1.5",
     "@vitejs/plugin-react": "^5.0.4",
     "@vitest/coverage-v8": "^3.2.4",
     "@vitest/ui": "^3.2.4",
@@ -95,3 +109,6 @@
     "web-vitals": "^5.1.0"
   }
 }
+
+
+

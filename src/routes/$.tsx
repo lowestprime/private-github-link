@@ -44,7 +44,7 @@ interface SearchParams {
 	access_token?: string;
 }
 
-import { parseRepoPath } from "@/lib/route-utils";
+import { buildRepoSplatPath, parseRepoPath } from "@/lib/route-utils";
 
 function RouteComponent() {
 	const params = Route.useParams();
@@ -143,16 +143,24 @@ function RouteComponent() {
 			newViewType: "tree" | "blob" | "commits",
 			newBranch: string,
 			newPath: string,
+			hash?: string,
 		) => {
-			const splatPath = newPath
-				? `${owner}/${repo}/${newViewType}/${newBranch}/${newPath}`
-				: `${owner}/${repo}/${newViewType}/${newBranch}`;
+			const splatPath = buildRepoSplatPath(
+				owner,
+				repo,
+				newViewType,
+				newBranch,
+				newPath,
+			);
 			navigate({
-				to: "/$",
+				hash,
+				hashScrollIntoView: false,
 				params: { _splat: splatPath },
+				resetScroll: !hash,
 				search: search?.access_token
 					? { access_token: search.access_token }
 					: undefined,
+				to: "/$",
 			});
 		},
 		[navigate, owner, repo, search?.access_token],
@@ -334,6 +342,36 @@ function RouteComponent() {
 		[queryClient],
 	);
 
+	const resolvePreviewViewType = React.useCallback(
+		(path: string): "blob" | "tree" => {
+			const normalizedPath = path.replace(/^\/+|\/+$/g, "");
+
+			if (!normalizedPath) {
+				return "tree";
+			}
+
+			const node = treeData ? findNode(treeData, normalizedPath) : null;
+			return node?.type ?? (normalizedPath.endsWith("/") ? "tree" : "blob");
+		},
+		[treeData],
+	);
+
+	const handleMarkdownNavigate = React.useCallback(
+		(target: { hash?: string; path: string }) => {
+			if (!currentBranch) {
+				return;
+			}
+
+			const normalizedPath = target.path.replace(/^\/+|\/+$/g, "");
+			navigateTo(
+				resolvePreviewViewType(normalizedPath),
+				currentBranch,
+				normalizedPath,
+				target.hash,
+			);
+		},
+		[currentBranch, navigateTo, resolvePreviewViewType],
+	);
 	// Find the selected file node from tree if viewing a file
 	const selectedFile = React.useMemo(() => {
 		if (!isFileView || !treeData || !currentPath) return null;
@@ -789,29 +827,32 @@ function RouteComponent() {
 
 				{/* File Viewer */}
 				<FileViewer
-					file={fileData?.content ?? null}
-					directory={isFileView || isCommitsView ? null : directoryData}
+					accessToken={githubToken}
+					branch={currentBranch}
+					className="flex-1 min-w-0"
 					commit={fileData?.commit}
 					commitHistory={commitHistoryData}
-					totalCommits={totalCommitCount}
-					owner={owner}
-					repoName={repo}
-					branch={currentBranch}
 					currentPath={currentPath}
-					historyPage={historyPage}
-					isLoading={isContentLoading}
-					isHistoryLoading={isHistoryLoading}
+					directory={isFileView || isCommitsView ? null : directoryData}
 					error={fileError?.message ?? null}
-					onNavigate={handleNavigate}
+					file={fileData?.content ?? null}
+					historyPage={historyPage}
+					isHistoryLoading={isHistoryLoading}
+					isLoading={isContentLoading}
+					onCloseHistory={handleCloseHistory}
 					onFileSelect={handleFileSelectFromDir}
 					onHover={handleDirectoryHover}
-					onShowHistory={handleShowHistory}
-					onCloseHistory={handleCloseHistory}
-					onPrevPage={handlePrevPage}
+					onMarkdownNavigate={handleMarkdownNavigate}
+					onNavigate={handleNavigate}
 					onNextPage={handleNextPage}
+					onPrevPage={handlePrevPage}
+					onShowHistory={handleShowHistory}
 					onToggleMobileExplorer={() => setMobileExplorerOpen(true)}
+					owner={owner}
+					repoName={repo}
+					resolvePreviewViewType={resolvePreviewViewType}
 					showHistory={isCommitsView}
-					className="flex-1 min-w-0"
+					totalCommits={totalCommitCount}
 				/>
 			</div>
 		</div>
@@ -898,3 +939,12 @@ export const Route = createFileRoute("/$")({
 	errorComponent: ErrorComponent,
 	component: RouteComponent,
 });
+
+
+
+
+
+
+
+
+

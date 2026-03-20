@@ -463,7 +463,7 @@ export async function getRepoTree(
 			} else {
 				const parentPath = pathParts.slice(0, -1).join("/");
 				const parent = nodeMap.get(parentPath);
-				if (parent && parent.children) {
+				if (parent?.children) {
 					parent.children.push(node);
 				}
 			}

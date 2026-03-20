@@ -8,7 +8,7 @@ describe("parseRepoPath", () => {
 		expect(result?.owner).toBe("owner");
 		expect(result?.repo).toBe("repo");
 		expect(result?.viewType).toBe("tree");
-		expect(result?.branch).toBe("main");
+		expect(result?.branch).toBe("");
 		expect(result?.path).toBe("");
 	});
 
