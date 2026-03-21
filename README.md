@@ -1,4 +1,5 @@
 # Private GitHub Link
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/thejasonxie/private-github-link)
 
 Share private GitHub repositories without adding collaborators. Generate shareable links that give read-only access to your private repos.
 
