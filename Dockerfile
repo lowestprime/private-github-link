@@ -12,14 +12,18 @@ ENV PORT=3001
 
 RUN bun run build
 
-FROM node:22-alpine AS runner
+FROM oven/bun:1 AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
+ENV SELF_HOSTED=true
 ENV PORT=3001
 
+COPY --from=builder /app/package.json ./package.json
+COPY --from=builder /app/bun.lock* ./
+COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/.output ./.output
 
 EXPOSE 3001
 
-CMD ["node", "--import", "./.output/server/instrument.server.mjs", ".output/server/index.mjs"]
+CMD ["bun", "run", "start"]
