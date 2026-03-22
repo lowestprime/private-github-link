@@ -1,0 +1,13 @@
+.git
+.github
+node_modules
+.output
+.sst
+.tanstack
+coverage
+.env
+.env.local
+.env.*.local
+#recycle
+@eaDir
+**/@eaDir

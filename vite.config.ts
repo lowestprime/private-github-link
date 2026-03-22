@@ -8,6 +8,8 @@ import { fileURLToPath, URL } from "node:url";
 import { defineConfig } from "vite";
 import viteTsConfigPaths from "vite-tsconfig-paths";
 
+const selfHosted = process.env.SELF_HOSTED === "true";
+
 const config = defineConfig({
 	resolve: {
 		alias: {
@@ -18,20 +20,17 @@ const config = defineConfig({
 		rollupOptions: {
 			external: ["fsevents"],
 		},
-		// Disable SSR sourcemaps to avoid missing .map file warnings from node_modules
 		sourcemap: false,
 	},
 	optimizeDeps: {
 		exclude: ["fsevents"],
 	},
 	ssr: {
-		// Don't process sourcemaps for node_modules packages
 		noExternal: [],
 	},
 	plugins: [
 		devtools(),
 		nitro(),
-		// this is the plugin that enables path aliases
 		viteTsConfigPaths({
 			projects: ["./tsconfig.json"],
 		}),
@@ -49,10 +48,14 @@ const config = defineConfig({
 		}),
 	],
 	nitro: {
-		preset: "aws-lambda",
-		awsLambda: {
-			streaming: true,
-		},
+		preset: selfHosted ? "node-server" : "aws-lambda",
+		...(selfHosted
+			? {}
+			: {
+					awsLambda: {
+						streaming: true,
+					},
+				}),
 		scanDirs: ["server"],
 	},
 });
